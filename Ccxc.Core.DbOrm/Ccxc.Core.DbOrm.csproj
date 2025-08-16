@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Platforms>AnyCPU;x64</Platforms>
+    <Authors>TedZyzsdy</Authors>
+    <Company>密码菌</Company>
+    <Product>CcxcEngine</Product>
+    <Version>0.1.4</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MySqlConnector" Version="2.2.5" />
+    <PackageReference Include="SqlSugar.MySqlConnectorCore" Version="5.10.3.36" />
+    <PackageReference Include="SqlSugarCore" Version="5.1.4.67" />
+    <PackageReference Include="System.Net.NameResolution" Version="4.3.0" />
+    <PackageReference Include="System.Threading.ThreadPool" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Ccxc.Core.Utils\Ccxc.Core.Utils.csproj" />
+  </ItemGroup>
+
+</Project>
