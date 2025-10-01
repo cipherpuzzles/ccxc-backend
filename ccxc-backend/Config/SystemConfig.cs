@@ -112,6 +112,11 @@ namespace ccxc_backend.Config
         public int UserSessionTimeout { get; set; } = 604800;
 
         /// <summary>
+        /// 用户Session数量上限，默认5个
+        /// </summary>
+        public int UserSessionMaxCount { get; set; } = 5;
+
+        /// <summary>
         /// 开赛时间，Unix时间戳（毫秒）
         /// </summary>
         public long StartTime { get; set; } = 1691755200000;

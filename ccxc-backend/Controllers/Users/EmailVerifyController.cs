@@ -33,6 +33,12 @@ namespace ccxc_backend.Controllers.Users
         [HttpHandler("POST", "/send-reset-pass-email")]
         public async Task SendResetPassEmail(Request request, Response response)
         {
+            if (!Config.Config.Options.EnableEmailVerify)
+            {
+                await response.BadRequest("未开启邮件验证，不能通过邮件重置密码。");
+                return;
+            }
+
             var requestJson = request.Json<EmailResetPassRequest>();
             //判断请求是否有效
             if (!Validation.Valid(requestJson, out string reason))
@@ -122,6 +128,12 @@ namespace ccxc_backend.Controllers.Users
         [HttpHandler("POST", "/reset-pass-check-token")]
         public async Task ResetPassCheckToken(Request request, Response response)
         {
+            if (!Config.Config.Options.EnableEmailVerify)
+            {
+                await response.BadRequest("未开启邮件验证。");
+                return;
+            }
+
             var requestJson = request.Json<ResetPassCheckTokenRequest>();
             //判断请求是否有效
             if (!Validation.Valid(requestJson, out string reason))

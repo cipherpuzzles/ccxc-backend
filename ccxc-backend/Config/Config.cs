@@ -40,6 +40,9 @@ namespace ccxc_backend.Config
         [OptionDescription("AES Master Key，请自由设置，切记不要泄露")]
         public string AESMasterKey { get; set; } = "Change Content!!!";
 
+        [OptionDescription("启用邮件验证。默认启用（True-启用 False-禁用）")]
+        public bool EnableEmailVerify { get; set; } = true;
+
         [OptionDescription("阿里云邮件推送服务Access Key")]
         public string AliyunDmAccessKey { get; set; } = "";
 

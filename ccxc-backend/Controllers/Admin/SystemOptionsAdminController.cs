@@ -28,7 +28,10 @@ namespace ccxc_backend.Controllers.Admin
             var cloneConfig = JsonConvert.DeserializeObject<SystemConfig>(JsonConvert.SerializeObject(currentConfig));
 
             // 将 AdminAiApiKey 只保留前4个字符。后面用 * 代替。
-            cloneConfig.AdminAiApiKey = cloneConfig.AdminAiApiKey[..4] + "********";
+            if (!string.IsNullOrEmpty(cloneConfig.AdminAiApiKey) && cloneConfig.AdminAiApiKey.Length > 4)
+            {
+                cloneConfig.AdminAiApiKey = cloneConfig.AdminAiApiKey[..4] + "********";
+            }
 
             await response.JsonResponse(200, new SystemOptionsAdminResponse
             {

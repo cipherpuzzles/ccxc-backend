@@ -147,6 +147,11 @@ namespace ccxc_backend.DataServices
             return $"ccxc:usersession:{uuid}";
         }
 
+        public string GetUserSessionStorage(int uid)
+        {
+            return $"ccxc:usersessionstorage:{uid}";
+        }
+
         public string GetTempTicketKey(string uuid)
         {
             return $"ccxc:tempticket:{uuid}";

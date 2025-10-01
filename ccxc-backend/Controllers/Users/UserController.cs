@@ -92,24 +92,34 @@ namespace ccxc_backend.Controllers.Users
                 theme_color = randomThemeColor,
                 info_key = emailVerifyToken
             };
-            var uid = await userDb.SimpleDb.AsInsertable(user).RemoveDataCache().ExecuteReturnIdentityAsync();
-            user.uid = uid;
 
-            //Email验证Token存入Redis
-            var verifyKey = cache.GetCacheKey($"emailVerify/{emailVerifyToken}");
-            await cache.Put(verifyKey, user, 1200000); //20分钟有效期。
-
-            //发送验证邮件
-            var sendRes = await EmailSender.EmailVerify(user.email, emailVerifyToken);
-            if (!sendRes)
+            if (Config.Config.Options.EnableEmailVerify)
             {
-                await response.JsonResponse(200, new UserRegResponse
+                var uid = await userDb.SimpleDb.AsInsertable(user).RemoveDataCache().ExecuteReturnIdentityAsync();
+                user.uid = uid;
+
+                //Email验证Token存入Redis
+                var verifyKey = cache.GetCacheKey($"emailVerify/{emailVerifyToken}");
+                await cache.Put(verifyKey, user, 1200000); //20分钟有效期。
+
+                //发送验证邮件
+                var sendRes = await EmailSender.EmailVerify(user.email, emailVerifyToken);
+                if (!sendRes)
                 {
-                    status = 1,
-                    is_send_email = 0,
-                    message = "注册成功，但Email验证邮件发送失败了。"
-                });
-                return;
+                    await response.JsonResponse(200, new UserRegResponse
+                    {
+                        status = 1,
+                        is_send_email = 0,
+                        message = "注册成功，但Email验证邮件发送失败了。"
+                    });
+                    return;
+                }
+            }
+            else
+            {
+                user.roleid = 1; //不使用Email验证时，直接设置为已激活用户
+                var uid = await userDb.SimpleDb.AsInsertable(user).RemoveDataCache().ExecuteReturnIdentityAsync();
+                user.uid = uid;
             }
 
             //写入日志
@@ -227,6 +237,12 @@ namespace ccxc_backend.Controllers.Users
         [HttpHandler("POST", "/user-email-activate")]
         public async Task UserEmailActivate(Request request, Response response)
         {
+            if (!Config.Config.Options.EnableEmailVerify)
+            {
+                await response.BadRequest("未开启邮件验证，无需重发激活邮件。");
+                return;
+            }
+
             var requestJson = request.Json<EmailResetPassRequest>();
 
             //判断请求是否有效
@@ -323,6 +339,12 @@ namespace ccxc_backend.Controllers.Users
         [HttpHandler("POST", "/email-verify-check-token")]
         public async Task EmailVerifyCheckToken(Request request, Response response)
         {
+            if (!Config.Config.Options.EnableEmailVerify)
+            {
+                await response.BadRequest("未开启邮件验证，无需进行邮件验证。");
+                return;
+            }
+
             var requestJson = request.Json<ResetPassCheckTokenRequest>();
             //判断请求是否有效
             if (!Validation.Valid(requestJson, out string reason))
@@ -616,6 +638,28 @@ namespace ccxc_backend.Controllers.Users
                 is_active = 1,
                 is_betaUser = (userItem.info_key == "beta_user") ? 1 : 0 //若info_key内容为beta_user，则授予测试用户权限
             };
+
+            //从用户Session列表中读取当前Session列表
+            var userSessionsKey = cache.GetUserSessionStorage(userItem.uid);
+            var userSessions = await cache.Get<List<string>>(userSessionsKey);
+
+            //检查已有的Session数量+1是否超过限制
+            var maxSession = Config.SystemConfigLoader.Config.UserSessionMaxCount;
+            userSessions ??= [];
+            if (userSessions.Count + 1 > maxSession)
+            {
+                //让最早的Session失效
+                var firstSession = userSessions[0];
+                var firstSessionKey = cache.GetUserSessionKey(firstSession);
+                var firstSessionItem = await cache.Get<UserSession>(firstSessionKey);
+                firstSessionItem.is_active = 0;
+                firstSessionItem.inactive_message = $"您的账号已于{DateTime.Now:yyyy-MM-dd HH:mm}在另一地点登录，超过最大登录数量限制。";
+                await cache.Put(firstSessionKey, firstSessionItem, Config.SystemConfigLoader.Config.UserSessionTimeout * 1000);
+
+                userSessions.RemoveAt(0);
+            }
+            userSessions.Add(uuid);
+            await cache.Put(userSessionsKey, userSessions, 30L*86400000);
 
             //保存当前Session
             var sessionKey = cache.GetUserSessionKey(uuid);
